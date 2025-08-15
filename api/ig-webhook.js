@@ -1,22 +1,26 @@
-export default function handler(req, res) {
-  if (req.method === 'GET') {
-    // Verification handshake — Meta calls this when you first set up the webhook
-    const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'veryfriendly-secret-123'; // pick any string you want
-    const mode = req.query['hub.mode'];
-    const token = req.query['hub.verify_token'];
-    const challenge = req.query['hub.challenge'];
+module.exports = async (req, res) => {
+  try {
+    if (req.method === 'GET') {
+      const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'veryfriendly-secret-123';
+      const mode = req.query['hub.mode'];
+      const token = req.query['hub.verify_token'];
+      const challenge = req.query['hub.challenge'];
 
-    if (mode && token && mode === 'subscribe' && token === VERIFY_TOKEN) {
-      console.log('Webhook verified');
-      res.status(200).send(challenge);
-    } else {
-      res.sendStatus(403);
+      if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+        return res.status(200).send(challenge);
+      }
+      return res.status(403).send('Forbidden');
     }
-  } else if (req.method === 'POST') {
-    // This handles actual webhook data from Instagram
-    console.log('Incoming webhook:', JSON.stringify(req.body, null, 2));
-    res.sendStatus(200);
-  } else {
-    res.sendStatus(404);
+
+    if (req.method === 'POST') {
+      console.log('Webhook POST body:', JSON.stringify(req.body, null, 2));
+      return res.status(200).send('ok');
+    }
+
+    res.setHeader('Allow', 'GET, POST');
+    res.status(405).send('Method Not Allowed');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error');
   }
-}
+};
